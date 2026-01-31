@@ -1,23 +1,17 @@
 # 🥛 BUKU PANDUAN MILKYNOTE
-**Versi 4.5 Ultimate (Android/Linux/Windows)**
-*Created by PrioSmilky*
+# 🥛 MilkyNote
 
----
+Aplikasi catatan sederhana yang didesain khusus untuk menulis novel & cerita. 
+Ringan, fokus, dan data 100% milik kamu sendiri.
 
-## 👋 Selamat Datang!
-MilkyNote adalah aplikasi penulis novel minimalis yang didesain untuk fokus, kecepatan, dan keamanan data lokal.
+## 📂 Dimana File Saya Disimpan?
+Tenang, tulisanmu tidak disimpan di internet (Cloud), tapi aman di dalam perangkatmu sendiri.
 
-## 🚀 Fitur Utama
+* **📱 Android:** Cek Penyimpanan Internal, folder bernama `MilkyNote_Sync`.
+* **💻 Windows:** Buka folder `Documents`, lalu cari folder `Note`.
+* **🐧 Linux:** Buka `Home` -> `Documents` -> `Note`.
 
-### 1. Navigasi & Sidebar
-* **Di HP (Mobile):** Tekan ikon **Garis Tiga (☰)** di pojok kiri atas untuk membuka Sidebar. Pilih file/folder dari situ.
-* **Di Laptop (Desktop):** Sidebar otomatis muncul. Tekan tombol **Menu** untuk menyembunyikan Sidebar (Mode Fokus Fullscreen).
-* **Manajemen File:**
-    * Klik **Folder+** untuk buat folder baru.
-    * Klik **File+** untuk buat naskah baru.
-    * Klik **Titik Tiga (⋮)** di sebelah file untuk **Ganti Nama** atau **Hapus**.
-
-### 2. Menulis dengan Markdown
+### Menulis dengan Markdown
 Aplikasi ini mendukung format Markdown agar tulisanmu rapi otomatis:
 * `# Judul Besar` (Untuk Bab)
 * `## Judul Sedang` (Untuk Sub-Bab)
@@ -25,33 +19,13 @@ Aplikasi ini mendukung format Markdown agar tulisanmu rapi otomatis:
 * `*Miring*` → *Miring*
 * `- List` → Bullet point
 
-### 3. Menyimpan (Save)
-* **Manual:** Tekan tombol **Disket 💾** di pojok kanan atas.
-* **Shortcut:** Tekan `Ctrl + S` di keyboard fisik.
-* **Indikator:** Jika ikon Disket berwarna **Oranye**, berarti ada perubahan yang belum disimpan.
+> *Tips: Karena file ada di folder biasa, kamu bisa backup folder tersebut ke Google Drive, Flashdisk, atau kirim via WA kapan saja.*
 
-### 4. Export ke PDF (Cetak Buku) 🖨️
-Klik ikon **PDF** di pojok kanan atas, lalu pilih:
-
-* **📄 Export File Ini:**
-    Hanya mengubah naskah yang sedang kamu buka menjadi PDF.
-* **📚 Export Full Folder (Buku):**
-    Menggabungkan **SEMUA** file `.md` atau `.txt` di dalam folder ini (termasuk sub-folder) menjadi satu file PDF utuh.
-    * *Urutan Bab:* Otomatis urut Abjad (A-Z).
-    * *Tips:* Beri nama file seperti `01_Pembukaan.md`, `02_BabSatu.md` agar urutannya pas.
+## ✨ Fitur Utama
+1.  **Tulis:** Mendukung format Markdown (Tebal, Miring, Judul Bab).
+2.  **Export PDF:** Bisa cetak satu bab atau langsung satu buku full.
+3.  **Privasi:** Tidak butuh internet & tidak ada iklan.
 
 ---
+*Happy Writing!* ☕
 
-## ⚠️ Pertanyaan Umum (FAQ)
-
-**Q: Di mana file saya disimpan?**
-A: Di folder `MilkyNote_Sync` (Android) atau `Documents/Note` (PC). Kamu bisa membukanya pakai aplikasi lain juga!
-
-**Q: Kenapa Export PDF lama?**
-A: Jika naskahmu sangat panjang, HP butuh waktu untuk menyusun halaman. Tunggu sampai lingkaran loading selesai.
-
-**Q: Apakah butuh Internet?**
-A: Tidak! MilkyNote 100% Offline. Data aman di HP-mu.
-
----
-*Selamat Menulis! Jangan lupa istirahat.* ☕
