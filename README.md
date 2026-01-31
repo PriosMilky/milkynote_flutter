@@ -2,7 +2,7 @@
 # 🥛 MilkyNote
 
 Aplikasi catatan sederhana yang didesain khusus untuk menulis novel & cerita. 
-Ringan, fokus, dan data 100% milik kamu sendiri.
+Ringan.
 
 ## 📂 Dimana File Saya Disimpan?
 Tenang, tulisanmu tidak disimpan di internet (Cloud), tapi aman di dalam perangkatmu sendiri.
