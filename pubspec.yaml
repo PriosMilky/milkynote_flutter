@@ -39,6 +39,9 @@ dependencies:
   pdf: ^3.11.3
   file_picker: ^10.3.10
   permission_handler: ^12.0.1
+  scribble: ^0.10.0+1
+  markdown: ^7.3.0
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
@@ -100,11 +103,17 @@ flutter_launcher_icons:
   ios: false
   image_path: "assets/icon.png"
   
-  # Linux boleh simple
-  linux: true
-  
-  # Windows HARUS begini (pakai Map/Daftar):
-  windows:
+  web:
     generate: true
     image_path: "assets/icon.png"
+    background_color: "#hex_code"
+    theme_color: "#hex_code"
+  windows:
+    generate: true
     icon_size: 48
+  macos:
+    generate: true
+    image_path: "assets/icon.png"
+  linux:
+    generate: true
+    image_path: "assets/icon.png"

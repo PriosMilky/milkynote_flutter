@@ -2,10 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import 'halaman_canvas.dart';
 
 // --- CONFIG PATH PINTAR ---
 String get rootPath {
@@ -158,26 +161,45 @@ class _HalamanUtamaState extends State<HalamanUtama>
   void _onItemClicked(FileSystemEntity entity) async {
     if (FileSystemEntity.isDirectorySync(entity.path)) {
       _bacaFolder(entity.path);
-    } else {
-      File file = File(entity.path);
-      if (file.path.endsWith('.md') || file.path.endsWith('.txt')) {
-        String isi = await file.readAsString();
+      return;
+    }
 
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          activeFile = file;
-          _textController.text = isi;
-          _originalContent = isi;
-          _hasUnsavedChanges = false;
-        });
+    File file = File(entity.path);
+    String path = file.path;
+    String fileName = path.split(Platform.pathSeparator).last;
 
-        bool isMobile = MediaQuery.of(context).size.width < 700;
-        if (Platform.isAndroid || isMobile) {
-          if (Scaffold.of(context).isDrawerOpen) {
-            Navigator.pop(context);
-          }
+    if (path.endsWith('.draw')) {
+      String baseName = fileName.replaceAll('.draw', '');
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HalamanCanvas(
+            rootPath: currentPath,
+            fileToEditBaseName: baseName,
+            isStandalone: true,
+          ),
+        ),
+      );
+      _bacaFolder(currentPath);
+      return;
+    }
+
+    if (path.endsWith('.md') || path.endsWith('.txt')) {
+      String isi = await file.readAsString();
+
+      if (!mounted) return;
+      setState(() {
+        activeFile = file;
+        _textController.text = isi;
+        _originalContent = isi;
+        _hasUnsavedChanges = false;
+      });
+
+      bool isMobile = MediaQuery.of(context).size.width < 700;
+      if (Platform.isAndroid || isMobile) {
+        if (Scaffold.of(context).isDrawerOpen) {
+          Navigator.pop(context);
         }
       }
     }
@@ -193,17 +215,14 @@ class _HalamanUtamaState extends State<HalamanUtama>
 
   Future<void> _simpanFile() async {
     if (activeFile == null) {
-      _tampilkanDialogBaru(isFolder: false);
+      _tampilkanDialogBaru(type: 0);
       return;
     }
 
     setState(() => _isLoading = true);
-
     await activeFile!.writeAsString(_textController.text);
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
       _originalContent = _textController.text;
@@ -213,7 +232,7 @@ class _HalamanUtamaState extends State<HalamanUtama>
     _bacaFolder(currentPath);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Tersimpan! (Ctrl+S)'),
+        content: Text('Tersimpan!'),
         duration: Duration(milliseconds: 800),
       ),
     );
@@ -238,12 +257,9 @@ class _HalamanUtamaState extends State<HalamanUtama>
       ).showSnackBar(const SnackBar(content: Text("Naskah kosong!")));
       return;
     }
-
     setState(() => _isLoading = true);
-
     final ttf = await _loadFont();
     final pdf = pw.Document();
-
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
@@ -264,126 +280,7 @@ class _HalamanUtamaState extends State<HalamanUtama>
       pdf,
       activeFile?.path.split(Platform.pathSeparator).last ?? 'doc.pdf',
     );
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _exportProjectPdf() async {
-    setState(() => _isLoading = true);
-
-    List<File> babNaskah = _scanFolderAman(Directory(currentPath));
-    babNaskah.sort((a, b) => a.path.compareTo(b.path));
-
-    if (babNaskah.isEmpty) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Tidak ada naskah .md/.txt!")),
-      );
-      return;
-    }
-
-    final ttf = await _loadFont();
-    final pdf = pw.Document();
-    String judulProject = currentPath
-        .split(Platform.pathSeparator)
-        .last
-        .toUpperCase();
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
-        theme: pw.ThemeData.withFont(base: ttf),
-        build: (context) {
-          List<pw.Widget> content = [];
-
-          content.add(
-            pw.Center(
-              child: pw.Text(
-                judulProject,
-                style: pw.TextStyle(
-                  fontSize: 40,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-            ),
-          );
-          content.add(pw.SizedBox(height: 100));
-          content.add(
-            pw.Center(
-              child: pw.Text(
-                "Total Bab: ${babNaskah.length}",
-                style: const pw.TextStyle(fontSize: 18, color: PdfColors.grey),
-              ),
-            ),
-          );
-          content.add(pw.NewPage());
-
-          for (var file in babNaskah) {
-            String namaBab = file.path
-                .split(Platform.pathSeparator)
-                .last
-                .replaceAll('.md', '');
-            try {
-              String isiBab = file.readAsStringSync();
-              content.add(
-                pw.Header(
-                  level: 1,
-                  child: pw.Text(
-                    namaBab,
-                    style: pw.TextStyle(
-                      fontSize: 20,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ),
-              );
-              content.add(pw.SizedBox(height: 10));
-              content.add(pw.Paragraph(text: isiBab));
-              content.add(pw.NewPage());
-            } catch (e) {
-              debugPrint("Error: $e");
-            }
-          }
-          return content;
-        },
-      ),
-    );
-    await _prosesSimpanPdf(pdf, '${judulProject}_FULL.pdf');
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  List<File> _scanFolderAman(Directory dir) {
-    List<File> files = [];
-    try {
-      List<FileSystemEntity> entities = dir.listSync(recursive: false);
-      for (var entity in entities) {
-        if (entity.path.split(Platform.pathSeparator).last.startsWith('.')) {
-          continue;
-        }
-
-        if (entity is File) {
-          if (entity.path.endsWith('.md') || entity.path.endsWith('.txt')) {
-            files.add(entity);
-          }
-        } else if (entity is Directory) {
-          files.addAll(_scanFolderAman(entity));
-        }
-      }
-    } catch (e) {
-      debugPrint("Skip folder: ${dir.path}");
-    }
-    return files;
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _prosesSimpanPdf(pw.Document pdf, String namaDefault) async {
@@ -403,14 +300,11 @@ class _HalamanUtamaState extends State<HalamanUtama>
         type: FileType.custom,
       );
       if (outputFile != null) {
-        if (!outputFile.endsWith('.pdf')) {
-          outputFile += '.pdf';
-        }
+        if (!outputFile.endsWith('.pdf')) outputFile += '.pdf';
         final file = File(outputFile);
         await file.writeAsBytes(await pdf.save());
       }
     }
-
     if (outputFile != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -421,16 +315,21 @@ class _HalamanUtamaState extends State<HalamanUtama>
     }
   }
 
-  // --- UI ---
-  void _tampilkanDialogBaru({required bool isFolder}) {
+  void _tampilkanDialogBaru({required int type}) {
     TextEditingController c = TextEditingController();
+    String title = "";
+    if (type == 0) title = "Catatan Baru (.md)";
+    if (type == 1) title = "Folder Baru";
+    if (type == 2) title = "Kanvas Baru (.draw)";
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isFolder ? "Folder Baru" : "File Baru"),
+        title: Text(title),
         content: TextField(
           controller: c,
-          decoration: InputDecoration(hintText: "Nama..."),
+          decoration: const InputDecoration(hintText: "Nama..."),
+          autofocus: true,
         ),
         actions: [
           TextButton(
@@ -439,26 +338,41 @@ class _HalamanUtamaState extends State<HalamanUtama>
           ),
           ElevatedButton(
             onPressed: () async {
-              if (c.text.isEmpty) {
-                return;
+              if (c.text.isEmpty) return;
+              String name = c.text;
+              String fullPath = '$currentPath/$name';
+
+              if (type == 1) {
+                await Directory(fullPath).create();
+              } else if (type == 0) {
+                if (!fullPath.endsWith('.md')) fullPath += '.md';
+                await File(fullPath).writeAsString("");
+                if (mounted) {
+                  setState(() {
+                    activeFile = File(fullPath);
+                    _textController.text = "";
+                  });
+                }
+              } else if (type == 2) {
+                if (mounted) {
+                  Navigator.pop(context);
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HalamanCanvas(
+                        rootPath: currentPath,
+                        fileToEditBaseName: name,
+                        isStandalone: true,
+                      ),
+                    ),
+                  );
+                  _bacaFolder(currentPath);
+                  return;
+                }
               }
-              String p = '$currentPath/${c.text}';
-              if (!isFolder && !p.endsWith('.md')) {
-                p += '.md';
-              }
-              isFolder
-                  ? await Directory(p).create()
-                  : await File(p).writeAsString("");
+
               _bacaFolder(currentPath);
-              if (!isFolder && mounted) {
-                setState(() {
-                  activeFile = File(p);
-                  _textController.text = "";
-                });
-              }
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
+              if (mounted && type != 2) Navigator.pop(context);
             },
             child: const Text("Buat"),
           ),
@@ -491,9 +405,7 @@ class _HalamanUtamaState extends State<HalamanUtama>
                 }
                 _bacaFolder(currentPath);
               }
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
+              if (context.mounted) Navigator.pop(context);
             },
             child: const Text("Simpan"),
           ),
@@ -530,9 +442,7 @@ class _HalamanUtamaState extends State<HalamanUtama>
                   });
                 }
                 _bacaFolder(currentPath);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
+                if (context.mounted) Navigator.pop(context);
               } catch (e) {
                 debugPrint("Error: $e");
               }
@@ -551,18 +461,25 @@ class _HalamanUtamaState extends State<HalamanUtama>
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
             color: Colors.blueGrey[50],
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 IconButton(
                   icon: const Icon(Icons.create_new_folder),
-                  onPressed: () => _tampilkanDialogBaru(isFolder: true),
+                  tooltip: "Folder Baru",
+                  onPressed: () => _tampilkanDialogBaru(type: 1),
                 ),
                 IconButton(
                   icon: const Icon(Icons.note_add),
-                  onPressed: () => _tampilkanDialogBaru(isFolder: false),
+                  tooltip: "Catatan Baru",
+                  onPressed: () => _tampilkanDialogBaru(type: 0),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.brush),
+                  tooltip: "Kanvas Baru",
+                  onPressed: () => _tampilkanDialogBaru(type: 2),
                 ),
               ],
             ),
@@ -580,16 +497,25 @@ class _HalamanUtamaState extends State<HalamanUtama>
               itemBuilder: (context, index) {
                 final item = sidebarFiles[index];
                 final name = item.path.split(Platform.pathSeparator).last;
-                if (name.startsWith('.')) {
-                  return const SizedBox.shrink();
-                }
+                if (name.startsWith('.')) return const SizedBox.shrink();
 
                 bool isDir = FileSystemEntity.isDirectorySync(item.path);
+
+                IconData icon;
+                Color color;
+                if (isDir) {
+                  icon = Icons.folder;
+                  color = Colors.amber;
+                } else if (name.endsWith('.draw')) {
+                  icon = Icons.palette;
+                  color = Colors.purple;
+                } else {
+                  icon = Icons.description;
+                  color = Colors.grey;
+                }
+
                 return ListTile(
-                  leading: Icon(
-                    isDir ? Icons.folder : Icons.description,
-                    color: isDir ? Colors.amber : Colors.grey,
-                  ),
+                  leading: Icon(icon, color: color),
                   title: Text(
                     name,
                     maxLines: 1,
@@ -600,12 +526,8 @@ class _HalamanUtamaState extends State<HalamanUtama>
                   trailing: PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert, size: 18),
                     onSelected: (val) {
-                      if (val == 'rename') {
-                        _renameItem(item);
-                      }
-                      if (val == 'delete') {
-                        _deleteItem(item);
-                      }
+                      if (val == 'rename') _renameItem(item);
+                      if (val == 'delete') _deleteItem(item);
                     },
                     itemBuilder: (context) => [
                       const PopupMenuItem(
@@ -631,6 +553,22 @@ class _HalamanUtamaState extends State<HalamanUtama>
   }
 
   Widget _buildEditorArea() {
+    if (activeFile == null) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.auto_awesome, size: 80, color: Colors.black12),
+            SizedBox(height: 10),
+            Text(
+              "Pilih catatan atau buat baru!",
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       children: [
         Container(
@@ -664,17 +602,81 @@ class _HalamanUtamaState extends State<HalamanUtama>
               ),
               SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: MarkdownBody(data: _textController.text),
+                child: MarkdownBody(
+                  data: _textController.text,
+                  selectable: true,
+                  extensionSet: md.ExtensionSet.gitHubFlavored,
+                  imageBuilder: (uri, title, alt) {
+                    String urlString = uri.toString();
+                    if (urlString.startsWith('http')) {
+                      return Image.network(urlString);
+                    }
+
+                    final File pngFile = File('$currentPath/$urlString');
+                    if (pngFile.existsSync()) {
+                      return InkWell(
+                        onTap: () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Mode edit..."),
+                              duration: Duration(milliseconds: 500),
+                            ),
+                          );
+                          String baseName = urlString
+                              .split('/')
+                              .last
+                              .replaceAll('.png', '');
+
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => HalamanCanvas(
+                                rootPath: currentPath,
+                                fileToEditBaseName: baseName,
+                                isStandalone: false,
+                              ),
+                            ),
+                          );
+
+                          if (!context.mounted) return;
+
+                          setState(() {
+                            imageCache.clear();
+                            imageCache.clearLiveImages();
+                          });
+                        },
+                        child: Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            Image.file(pngFile),
+                            Container(
+                              margin: const EdgeInsets.all(4),
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.blueGrey.withValues(alpha: 0.7),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      return const Icon(Icons.broken_image, color: Colors.grey);
+                    }
+                  },
+                ),
               ),
             ],
           ),
         ),
         Container(
           height: 35,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            border: Border(top: BorderSide(color: Colors.grey[300]!)),
-          ),
+          color: Colors.grey[200],
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -687,7 +689,7 @@ class _HalamanUtamaState extends State<HalamanUtama>
                 ),
               ),
               const Text(
-                "V4.5 FINAL",
+                "V6.0 CREATIVE SUITE",
                 style: TextStyle(fontSize: 10, color: Colors.grey),
               ),
             ],
@@ -717,7 +719,6 @@ class _HalamanUtamaState extends State<HalamanUtama>
                   onPressed: () => setState(
                     () => _showDesktopSidebar = !_showDesktopSidebar,
                   ),
-                  tooltip: "Toggle Sidebar",
                 ),
           title: Text(
             activeFile?.path.split(Platform.pathSeparator).last ?? "MilkyNote",
@@ -726,22 +727,10 @@ class _HalamanUtamaState extends State<HalamanUtama>
             PopupMenuButton<String>(
               icon: const Icon(Icons.picture_as_pdf),
               onSelected: (val) {
-                if (val == 'single') {
-                  _exportSinglePdf();
-                }
-                if (val == 'project') {
-                  _exportProjectPdf();
-                }
+                if (val == 'single') _exportSinglePdf();
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'single',
-                  child: Text("Export File Ini"),
-                ),
-                const PopupMenuItem(
-                  value: 'project',
-                  child: Text("Export Full Folder (Buku)"),
-                ),
+                const PopupMenuItem(value: 'single', child: Text("Export PDF")),
               ],
             ),
             const SizedBox(width: 10),
@@ -754,9 +743,7 @@ class _HalamanUtamaState extends State<HalamanUtama>
             ),
           ],
         ),
-
         drawer: isMobile ? Drawer(child: _buildSidebar()) : null,
-
         body: Stack(
           children: [
             Row(
@@ -767,23 +754,7 @@ class _HalamanUtamaState extends State<HalamanUtama>
                 Expanded(child: _buildEditorArea()),
               ],
             ),
-            if (_isLoading)
-              Container(
-                color: Colors.black54,
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(color: Colors.white),
-                      SizedBox(height: 20),
-                      Text(
-                        "Sedang Memproses PDF...",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            if (_isLoading) const Center(child: CircularProgressIndicator()),
           ],
         ),
       ),
